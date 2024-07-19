@@ -12,9 +12,14 @@ processing. Ingestify also supports ignoring files and directories using pattern
 
 ## Installation
 
+1. Download the [latest release](https://github.com/usmanmehmood55/Ingestify/releases) and use the .exe for Windows x64.
+2. For other architectures, build from source.
+
+## Build from Source
+
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/Ingestify.git
+   git clone https://github.com/usmanmehmood55/Ingestify.git
    cd Ingestify
    ```
 
