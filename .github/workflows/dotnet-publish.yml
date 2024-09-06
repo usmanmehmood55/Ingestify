@@ -6,8 +6,10 @@ on:
       - 'v*'
 
 jobs:
-  build-and-publish:
+  build-and-publish-windows:
     runs-on: windows-latest
+    outputs:
+      release_upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -35,6 +37,51 @@ jobs:
           /p:PublishReadyToRun=true
           /p:PublishAot=true
 
+      - name: Upload Artifact for Windows
+        uses: actions/upload-artifact@v3
+        with:
+          name: application-windows
+          path: bin\Release\net8.0\publish\windows\*.exe
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        with:
+          tag_name:     ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft:        false
+          prerelease:   false
+
+      - name: List files in the publish directory
+        run: dir bin\Release\net8.0\publish\windows
+
+      - name: Upload Release Asset for Windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin\Release\net8.0\publish\windows\Ingestify.exe
+          asset_name: Ingestify.exe
+          asset_content_type: application/octet-stream
+
+  build-and-publish-macos:
+    runs-on: macos-latest
+    needs: build-and-publish-windows
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
       - name: Build for MacOS M series
         run: dotnet build --configuration Release --no-restore
 
@@ -50,50 +97,18 @@ jobs:
           /p:PublishReadyToRun=true
           /p:PublishAot=true
 
-      - name: Upload Artifact for Windows
-        uses: actions/upload-artifact@v3
-        with:
-          name: application-windows
-          path: bin\Release\net8.0\publish\windows\*.exe
-
       - name: Upload Artifact for MacOS
         uses: actions/upload-artifact@v3
         with:
           name: application-macos
           path: bin/Release/net8.0/publish/mac/*
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-        with:
-          tag_name:     ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft:        false
-          prerelease:   false
-
-      - name: List files in the publish directory
-        run: |
-          dir bin\Release\net8.0\publish\windows
-          ls bin/Release/net8.0/publish/mac
-
-      - name: Upload Release Asset for Windows
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: bin\Release\net8.0\publish\windows\Ingestify.exe
-          asset_name: Ingestify.exe
-          asset_content_type: application/octet-stream
-
       - name: Upload Release Asset for MacOS
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ needs.build-and-publish-windows.outputs.release_upload_url }}
           asset_path: bin/Release/net8.0/publish/mac/Ingestify
           asset_name: Ingestify-macos
           asset_content_type: application/octet-stream
