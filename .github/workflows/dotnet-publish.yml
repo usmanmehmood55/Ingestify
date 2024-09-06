@@ -20,26 +20,47 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build for Windows
         run: dotnet build --configuration Release --no-restore
 
-      - name: Publish
+      - name: Publish for Windows
         run: >
           dotnet publish
           -c Release
           -r win-x64
           --self-contained
           -f net8.0
-          -o bin\Release\net8.0\publish\
+          -o bin\Release\net8.0\publish\windows
           /p:PublishSingleFile=false
           /p:PublishReadyToRun=true
           /p:PublishAot=true
 
-      - name: Upload Artifact
+      - name: Build for MacOS M series
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish for MacOS M series
+        run: >
+          dotnet publish
+          -c Release
+          -r osx-arm64
+          --self-contained
+          -f net8.0
+          -o bin/Release/net8.0/publish/mac
+          /p:PublishSingleFile=false
+          /p:PublishReadyToRun=true
+          /p:PublishAot=true
+
+      - name: Upload Artifact for Windows
         uses: actions/upload-artifact@v3
         with:
-          name: application
-          path: bin\Release\net8.0\publish\*.exe
+          name: application-windows
+          path: bin\Release\net8.0\publish\windows\*.exe
+
+      - name: Upload Artifact for MacOS
+        uses: actions/upload-artifact@v3
+        with:
+          name: application-macos
+          path: bin/Release/net8.0/publish/mac/*
 
       - name: Create Release
         id: create_release
@@ -53,14 +74,26 @@ jobs:
           prerelease:   false
 
       - name: List files in the publish directory
-        run: dir bin\Release\net8.0\publish
+        run: |
+          dir bin\Release\net8.0\publish\windows
+          ls bin/Release/net8.0/publish/mac
 
-      - name: Upload Release Asset
+      - name: Upload Release Asset for Windows
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: bin\Release\net8.0\publish\Ingestify.exe
+          asset_path: bin\Release\net8.0\publish\windows\Ingestify.exe
           asset_name: Ingestify.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset for MacOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin/Release/net8.0/publish/mac/Ingestify
+          asset_name: Ingestify-macos
           asset_content_type: application/octet-stream

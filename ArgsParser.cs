@@ -71,7 +71,11 @@ namespace Ingestify
         private static CLI_ERR ParseInputDir(string[] keyValuePair, Inputs inputs)
         {
             if (keyValuePair.Length < 1)                    return CLI_ERR.INPUT_DIR_NOT_GIVEN;
-            if (Directory.Exists(keyValuePair[1]) == false) return CLI_ERR.INPUT_DIRECTORY_NOT_FOUND;
+            if (Directory.Exists(keyValuePair[1]) == false)
+            {
+                Logger.Error($"Could not find directory: \"{keyValuePair[1]}\"");
+                return CLI_ERR.INPUT_DIRECTORY_NOT_FOUND;
+            }
             inputs.InputDir = keyValuePair[1];
             return CLI_ERR.OK;
         }
